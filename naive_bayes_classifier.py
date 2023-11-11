@@ -32,7 +32,7 @@ class NaiveBayesClassifier:
                 final_probability *= attribute_probability
 
             probabilities[decision] = final_probability
-
+        print(probabilities)
         return probabilities
 
     def classify(self) -> int:
