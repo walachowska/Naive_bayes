@@ -2,8 +2,9 @@ import pandas
 
 
 class NaiveBayesClassifier:
-    def __init__(self, data, decisions):
-        self.data = data
+    def __init__(self, train_data, test_data, decisions):
+        self.train_set = train_data
+        self.test_set = test_data
         self.decisions = decisions
 
     def calculate_probabilities(self, row) -> dict:
@@ -13,19 +14,19 @@ class NaiveBayesClassifier:
         probabilities = {}
         for decision in self.decisions:
             # decisions probabilities P(Y)
-            num_of_all_decisions = len(self.data['class'])
-            decision_probability = (self.data['class'] == decision).sum() / num_of_all_decisions
+            num_of_all_decisions = len(self.train_set['class'])
+            decision_probability = (self.train_set['class'] == decision).sum() / num_of_all_decisions
             # start counting from probability from decision probability
             final_probability = decision_probability
             # count probabilities for attributes
 
-            for attribute, column in zip(attributes, self.data.columns[:-1]):
-                attribute_occ = ((self.data[column] == attribute) & (self.data['class'] == decision)).sum()
-                decision_att_occ = (self.data['class'] == decision).sum()
+            for attribute, column in zip(attributes, self.train_set.columns[:-1]):
+                attribute_occ = ((self.train_set[column] == attribute) & (self.train_set['class'] == decision)).sum()
+                decision_att_occ = (self.train_set['class'] == decision).sum()
                 # whether smoothing is necessary
                 if attribute_occ == 0:
                     attribute_occ += 1
-                    num_of_unique_att = self.data[column].nunique()
+                    num_of_unique_att = self.train_set[column].nunique()
                     decision_att_occ += num_of_unique_att
                 attribute_probability = attribute_occ / decision_att_occ
                 final_probability *= attribute_probability
@@ -36,7 +37,7 @@ class NaiveBayesClassifier:
 
     def classify(self) -> int:
         correct_classifications = 0
-        for _, row in self.data.iterrows():
+        for _, row in self.test_set.iterrows():
             # dict for results of 4 decision attributes
             probabilities = self.calculate_probabilities(row)
             # print(f'Results: {probabilities}')
@@ -49,22 +50,30 @@ class NaiveBayesClassifier:
                 correct_classifications += 1
         return correct_classifications
 
-    def show_accuracy(self, correct_anwsers)-> None:
+    def show_accuracy(self, correct_anwsers) -> None:
         print('\nNumber of correct classifications: ', correct_anwsers)
-        num_of_rows = len(self.data)
-        accuracy_percentage = (correct_anwsers / num_of_rows) * 100
+        num_of_all_classifications = len(self.test_set)
+        accuracy_percentage = (correct_anwsers / num_of_all_classifications) * 100
         print(f'Accuracy: {accuracy_percentage} %')
 
 
 # read data
 data = pandas.read_csv('car_evaluation.data', header=None)
 data.columns = ['price', 'maint', 'doors', 'persons', 'lug_boot', 'safety', 'class']
+# data mixing
+data = data.sample(frac=1).reset_index(drop=True)
+# setting test set size
+test_size = int(len(data) * 0.30)
+# partition to test 30%  and train sets 70%
+test_set = data[:test_size].reset_index(drop=True)
+train_set = data[test_size:].reset_index(drop=True)
 # decision attributes
 decisions = ['unacc', 'acc', 'vgood', 'good']
 # classification
-bayes = NaiveBayesClassifier(data, decisions)
-correct_classifications = bayes.classify()
+classifier = NaiveBayesClassifier(train_set, test_set, decisions)
+correct_classifications = classifier.classify()
 # results
-bayes.show_accuracy(correct_classifications)
+print(f"\nResults for a {test_size}x test size: ")
+classifier.show_accuracy(correct_classifications)
 
 
