@@ -1,4 +1,5 @@
 import pandas
+import statistics
 
 
 class NaiveBayesClassifier:
@@ -9,7 +10,7 @@ class NaiveBayesClassifier:
 
     def calculate_probabilities(self, row) -> dict:
         attributes = row[:6].values
-        print(f'Certain attributes: {attributes}')
+        # print(f'Certain attributes: {attributes}')
         # dict for 4 results
         probabilities = {}
         for decision in self.decisions:
@@ -32,7 +33,7 @@ class NaiveBayesClassifier:
                 final_probability *= attribute_probability
 
             probabilities[decision] = final_probability
-        print(probabilities)
+        # print(probabilities)
         return probabilities
 
     def classify(self) -> int:
@@ -42,38 +43,46 @@ class NaiveBayesClassifier:
             probabilities = self.calculate_probabilities(row)
             # print(f'Results: {probabilities}')
             best_result = max(probabilities, key=probabilities.get)
-            print(f'These attributes were classified as {best_result}')
+            # print(f'These attributes were classified as {best_result}')
             expected_class = row['class']
-            print(f'Real Value: {expected_class}')
+            # print(f'Real Value: {expected_class}')
             # note correct classification
             if best_result == expected_class:
                 correct_classifications += 1
         return correct_classifications
 
-    def show_accuracy(self, correct_anwsers) -> None:
-        print('\nNumber of correct classifications: ', correct_anwsers)
+    def get_accuracy(self, correct_anwsers) :
+        print("Number of correct classifications: ", correct_anwsers)
         num_of_all_classifications = len(self.test_set)
         accuracy_percentage = (correct_anwsers / num_of_all_classifications) * 100
-        print(f'Accuracy: {accuracy_percentage} %')
+        print(f"Accuracy: {accuracy_percentage} %")
+        return accuracy_percentage
 
 
 # read data
 data = pandas.read_csv('car_evaluation.data', header=None)
 data.columns = ['price', 'maint', 'doors', 'persons', 'lug_boot', 'safety', 'class']
-# data mixing
-data = data.sample(frac=1).reset_index(drop=True)
-# setting test set size
-test_size = int(len(data) * 0.30)
-# partition to test 30%  and train sets 70%
-test_set = data[:test_size].reset_index(drop=True)
-train_set = data[test_size:].reset_index(drop=True)
 # decision attributes
 decisions = ['unacc', 'acc', 'vgood', 'good']
-# classification
-classifier = NaiveBayesClassifier(train_set, test_set, decisions)
-correct_classifications = classifier.classify()
-# results
-print(f"\nResults for a {test_size}x test size: ")
-classifier.show_accuracy(correct_classifications)
+accuracy_results = []
+# classifications
+for i in range(1, 11):
+    # data mixing
+    data = data.sample(frac=1).reset_index(drop=True)
+    # setting test set size
+    test_size = int(len(data) * 0.30)
+    # partition to test 30%  and train sets 70%
+    test_set = data[:test_size].reset_index(drop=True)
+    train_set = data[test_size:].reset_index(drop=True)
+    classifier = NaiveBayesClassifier(train_set, test_set, decisions)
+    correct_classifications = classifier.classify()
+    # results
+    print(f"\n{i}.Results for a {test_size}x test size: ")
+    accuracy_percentage = classifier.get_accuracy(correct_classifications)
+    accuracy_results.append(accuracy_percentage)
 
-
+# mean accuracy
+mean_accuracy = sum(accuracy_results) / len(accuracy_results)
+std_dev = statistics.stdev(accuracy_results)
+print(f"\n\tMean accuracy: {mean_accuracy}%")
+print(f"\tStandard deviation: {std_dev}")
